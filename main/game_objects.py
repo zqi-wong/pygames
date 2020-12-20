@@ -22,8 +22,8 @@ class Player(Actor):
         # 极坐标下的碰撞监测点
 
     def update_verb(self, stars, flag_gravity, rel):
-        fx = 10*(self.timer**2)*rel[0] if self.isjet else 0
-        fy = 10*(self.timer**2)*rel[1] if self.isjet else 0
+        fx = 13*(self.timer**2)*rel[0] if self.isjet else 0
+        fy = 13*(self.timer**2)*rel[1] if self.isjet else 0#喷汽部分
         if flag_gravity:
             for star in stars:
                 dis = [star.pos[0]-self.pos[0], star.pos[1]-self.pos[1]]
@@ -95,26 +95,31 @@ class Star():
         self.radium = radium
         self.mass = radium**3
         self.color = color
+        self.co_just_now = []
 
     def collide(self, other):
-        dis = (other.pos[0]-self.pos[0], other.pos[1]-self.pos[1])
-        d = math.sqrt(dis[0]**2+dis[1]**2)
-        if d <= 1:
-            d = 1
-        v1c = self.verb[0]*(dis[0]/d)+self.verb[1]*(dis[1]/d)
-        v1p = self.verb[0]*(dis[1]/d)-self.verb[1]*(dis[0]/d)
-        v2c = other.verb[0]*(dis[0]/d)+other.verb[1]*(dis[1]/d)
-        v2p = other.verb[0]*(dis[1]/d)-other.verb[1]*(dis[0]/d)
-        v1ce = ((self.mass-other.mass)*v1c+2*other.mass*v2c) / \
-            (self.mass+other.mass)
-        v2ce = ((other.mass-self.mass)*v2c+2*self.mass*v1c) / \
-            (self.mass+other.mass)
-        self.verb = (v1ce*(dis[0]/d)+v1p*(dis[1]/d),
-                     v1ce*(dis[1]/d)-v1p*(dis[0]/d))
-        other.verb = (v2ce*(dis[0]/d)+v2p*(dis[1]/d),
-                      v2ce*(dis[1]/d)-v2p*(dis[0]/d))
+        if other not in [x[0] for x in self.co_just_now]:
+            dis = (other.pos[0]-self.pos[0], other.pos[1]-self.pos[1])
+            d = math.sqrt(dis[0]**2+dis[1]**2)
+            if d <= 1:
+                d = 1
+            v1c = self.verb[0]*(dis[0]/d)+self.verb[1]*(dis[1]/d)
+            v1p = self.verb[0]*(dis[1]/d)-self.verb[1]*(dis[0]/d)
+            v2c = other.verb[0]*(dis[0]/d)+other.verb[1]*(dis[1]/d)
+            v2p = other.verb[0]*(dis[1]/d)-other.verb[1]*(dis[0]/d)
+            v1ce = ((self.mass-other.mass)*v1c+2*other.mass*v2c) / \
+                (self.mass+other.mass)
+            v2ce = ((other.mass-self.mass)*v2c+2*self.mass*v1c) / \
+                (self.mass+other.mass)
+            self.verb = (v1ce*(dis[0]/d)+v1p*(dis[1]/d),
+                         v1ce*(dis[1]/d)-v1p*(dis[0]/d))
+            other.verb = (v2ce*(dis[0]/d)+v2p*(dis[1]/d),
+                          v2ce*(dis[1]/d)-v2p*(dis[0]/d))
+            # 实现行星之间的碰撞
+            self.co_just_now.append((other, 0.5))
+            other.co_just_now.append((self,0.5))
+            # 记录刚刚碰撞过
         self.reset(other)
-        # 实现行星之间的碰撞
 
     def reset(self, other):
         dis = (other.pos[0]-self.pos[0], other.pos[1]-self.pos[1])
@@ -138,6 +143,12 @@ class Star():
         self.pos = (self.pos[0] + self.verb[0]/60,
                     self.pos[1] + self.verb[1]/60)
         # 逐帧计算行星位置
+        for row in self.co_just_now:
+            if row[1] <= 0:
+                self.co_just_now.remove(row)
+            else:
+                row = (row[0], row[1]-1/60)
+        # 计时刚刚碰撞
 
 
 def addStar(pos, verb, radium, stars):

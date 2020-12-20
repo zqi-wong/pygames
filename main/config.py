@@ -1,3 +1,3 @@
 WIDTH = 1200
 HEIGHT = 800
-G = 15
+G = 12
