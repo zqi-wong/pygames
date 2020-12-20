@@ -67,10 +67,10 @@ class Player(Actor):
             pos = (self.pos[0]-40*rel[0], self.pos[1]-40*rel[1])
             verb = (-300*rel[0], -300*rel[1])
             c = (244, 244, 244)
-            bullet = Star(pos, verb, 5, c,bullet=True)
+            bullet = Star(pos, verb, 5, c, bullet=True)
             stars.append(bullet)
             self.timer = self.cd_shoot
-        #实现子弹
+        # 实现子弹
 
     def stop_jet(self):
         self.isjet = False
@@ -105,7 +105,7 @@ class Star():
     用于储存行星的类
     '''
 
-    def __init__(self, pos, verb, radium, color,bullet = False):
+    def __init__(self, pos, verb, radium, color, bullet=False):
         self.pos = pos
         self.verb = verb
         self.radium = radium
@@ -155,7 +155,6 @@ class Star():
         other.pos = (other.pos[0]+deep*(dis[0]/d)*self.mass/(2*(self.mass+other.mass)),
                      other.pos[1]+deep*(dis[1]/d)*self.mass/(2*(self.mass+other.mass)))
         # 实现行星之间重置位置
-        
 
     def update(self):
         self.pos = (self.pos[0] + self.verb[0]/60,
