@@ -175,9 +175,6 @@ def addStar(pos, verb, radium, stars):
          random.randint(100, 255))
     star = Star(pos, verb, radium, c)
     stars.append(star)
-    # for i in range(len(co_just_now)):
-    #     co_just_now[i].append(0)
-    # co_just_now.append([0, ]*(len(co_just_now)+1))
     # 增加行星，用于命令行和ran_addStar
 
 
