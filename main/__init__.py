@@ -20,7 +20,8 @@ def draw():
     global flag_gravity
     screen.clear()
     screen.fill((30, 30, 30))
-    screen.draw.text('next jet:{:.2f}'.format(player.timer), (800, 100))
+    screen.draw.text('next jet:{:.2f}\nscore:{:.1f}'.format(
+        player.timer, timer), (800, 100))
     for star in stars:
         screen.draw.filled_circle(star.pos, star.radium, star.color)
     player.draw()
@@ -39,7 +40,8 @@ def draw():
         msg = "Here  comes  the  GRAVITY!"
         screen.draw.text(msg, (400, 300))
     elif game_stop == 3:
-        msg = "GAME  OVER\npress 'c' to exit\npress 'r' to restart"
+        msg = "GAME  OVER\nyour score is {:.1f}\n".format(timer)
+        msg += "press 'c' to exit\npress 'r' to restart"
         screen.draw.text(msg, (400, 300))
     elif debug_mode:
         msg = "Debuging……"
@@ -53,7 +55,7 @@ def update():
         debug_mode = 1
         while True:
             command = input("input your command\ninput 'quit' to quit\n")
-            if check_commands(command, stars, mouse_position):
+            if check_commands(command, stars, mouse_position, player):
                 break
     if keyboard.Z:
         debug_mode = 0
@@ -102,7 +104,7 @@ def update():
             if d <= stars[i].radium+stars[j].radium:
                 stars[i].collide(stars[j])
     for star in stars:
-        if player.is_collide(star):
+        if player.is_collide(star) and (not player.WHOSYOURDADDY):
             player.crush()
             game_stop = 3
     # 检测碰撞
@@ -147,7 +149,7 @@ def restart():
     stars = []
     timer = 0
     player = Player('rocket', pos=(600, 400))
-    #用于重新开始
+    # 用于重新开始
 
 
 # def on_key_down(key):

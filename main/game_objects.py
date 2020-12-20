@@ -20,6 +20,7 @@ class Player(Actor):
         self.cd = 3
         self.crusharea = ((10, 0), (32.5, 2.747), (32.5, -2.474))
         # 极坐标下的碰撞监测点
+        self.WHOSYOURDADDY = False
 
     def update_verb(self, stars, flag_gravity, rel):
         fx = 13*(self.timer**2)*rel[0] if self.isjet else 0
@@ -28,13 +29,15 @@ class Player(Actor):
             for star in stars:
                 dis = [star.pos[0]-self.pos[0], star.pos[1]-self.pos[1]]
                 d = math.sqrt(dis[0]**2+dis[1]**2)
+                if d <=2:
+                    d = 2
                 f = (G/(d**2))*star.mass
                 fx += f*(dis[0]/d)
                 fy += f*(dis[1]/d)
         self.verb = (self.verb[0]+fx/60,
                      self.verb[1]+fy/60)
-        self.verb = (self.verb[0]*0.998,
-                     self.verb[1]*0.998)
+        self.verb = (self.verb[0]*0.996,
+                     self.verb[1]*0.996)
         # 逐帧计算速度
 
     def update_pos(self):
@@ -53,7 +56,7 @@ class Player(Actor):
             if self.verb != (0, 0) and self.verb[1] != 0:
                 ang = math.atan(self.verb[0]/self.verb[1])*(180/math.pi)
                 self.angle = ang if self.verb[1] <= 0 else ang + 180
-            clock.schedule_unique(self.stop_jet, 1.5)
+            clock.schedule_unique(self.stop_jet, 2)
         # 实现喷气
 
     def stop_jet(self):
@@ -190,19 +193,19 @@ def ran_addStar(stars):
 
 def reset_position(player, stars):
     feed_back = (abs(player.verb[0])+abs(player.verb[1]))/60
-    if player.pos[0] < 0.25*WIDTH:
+    if player.pos[0] < 0.15*WIDTH:
         for star in stars:
             star.pos = (star.pos[0]+feed_back, star.pos[1])
         player.pos = (player.pos[0]+feed_back, player.pos[1])
-    if player.pos[0] > 0.75*WIDTH:
+    if player.pos[0] > 0.85*WIDTH:
         for star in stars:
             star.pos = (star.pos[0]-feed_back, star.pos[1])
         player.pos = (player.pos[0]-feed_back, player.pos[1])
-    if player.pos[1] < 0.25*HEIGHT:
+    if player.pos[1] < 0.15*HEIGHT:
         for star in stars:
             star.pos = (star.pos[0], star.pos[1]+feed_back)
         player.pos = (player.pos[0], player.pos[1]+feed_back)
-    if player.pos[1] > 0.75*HEIGHT:
+    if player.pos[1] > 0.85*HEIGHT:
         for star in stars:
             star.pos = (star.pos[0], star.pos[1]-feed_back)
         player.pos = (player.pos[0], player.pos[1]-feed_back)
