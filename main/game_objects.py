@@ -17,19 +17,21 @@ class Player(Actor):
         self.verb = verb
         self.isjet = False
         self.timer = 0
-        self.cd = 3
+        self.cd_jet = 3
+        self.jet_strength = 1
+        self.cd_shoot = 6
         self.crusharea = ((10, 0), (32.5, 2.747), (32.5, -2.474))
         # 极坐标下的碰撞监测点
         self.WHOSYOURDADDY = False
 
     def update_verb(self, stars, flag_gravity, rel):
-        fx = 13*(self.timer**2)*rel[0] if self.isjet else 0
-        fy = 13*(self.timer**2)*rel[1] if self.isjet else 0#喷汽部分
+        fx = 13*((self.jet_strength*self.timer)**2)*rel[0] if self.isjet else 0
+        fy = 13*(self.timer**2)*rel[1] if self.isjet else 0  # 喷汽部分
         if flag_gravity:
             for star in stars:
                 dis = [star.pos[0]-self.pos[0], star.pos[1]-self.pos[1]]
                 d = math.sqrt(dis[0]**2+dis[1]**2)
-                if d <=2:
+                if d <= 2:
                     d = 2
                 f = (G/(d**2))*star.mass
                 fx += f*(dis[0]/d)
@@ -52,12 +54,23 @@ class Player(Actor):
         if self.timer == 0:
             self.isjet = True
             self.image = 'rocket_withfire'
-            self.timer = self.cd
+            self.timer = self.cd_jet
             if self.verb != (0, 0) and self.verb[1] != 0:
                 ang = math.atan(self.verb[0]/self.verb[1])*(180/math.pi)
                 self.angle = ang if self.verb[1] <= 0 else ang + 180
             clock.schedule_unique(self.stop_jet, 2)
         # 实现喷气
+
+    def shoot(self, rel, stars):
+        if self.timer == 0:
+            self.verb = (self.verb[0]+40*rel[0], self.verb[1]+40*rel[1])
+            pos = (self.pos[0]-40*rel[0], self.pos[1]-40*rel[1])
+            verb = (-300*rel[0], -300*rel[1])
+            c = (244, 244, 244)
+            bullet = Star(pos, verb, 5, c,bullet=True)
+            stars.append(bullet)
+            self.timer = self.cd_shoot
+        #实现子弹
 
     def stop_jet(self):
         self.isjet = False
@@ -92,12 +105,13 @@ class Star():
     用于储存行星的类
     '''
 
-    def __init__(self, pos, verb, radium, color):
+    def __init__(self, pos, verb, radium, color,bullet = False):
         self.pos = pos
         self.verb = verb
         self.radium = radium
         self.mass = radium**3
         self.color = color
+        self.bullet = bullet
         self.co_just_now = []
 
     def collide(self, other):
@@ -120,7 +134,7 @@ class Star():
                           v2ce*(dis[1]/d)-v2p*(dis[0]/d))
             # 实现行星之间的碰撞
             self.co_just_now.append((other, 0.5))
-            other.co_just_now.append((self,0.5))
+            other.co_just_now.append((self, 0.5))
             # 记录刚刚碰撞过
         self.reset(other)
 
@@ -141,6 +155,7 @@ class Star():
         other.pos = (other.pos[0]+deep*(dis[0]/d)*self.mass/(2*(self.mass+other.mass)),
                      other.pos[1]+deep*(dis[1]/d)*self.mass/(2*(self.mass+other.mass)))
         # 实现行星之间重置位置
+        
 
     def update(self):
         self.pos = (self.pos[0] + self.verb[0]/60,

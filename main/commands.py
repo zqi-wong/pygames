@@ -11,6 +11,7 @@ from config import WIDTH, HEIGHT, G
 
 
 def check_commands(command, stars, mouse_position, player):
+    global game_stop
     c_l = command.split(' ')
     if c_l[0] == 'addStar' or c_l[0] == 'addstar':
         try:
@@ -30,6 +31,8 @@ def check_commands(command, stars, mouse_position, player):
     elif c_l[0] == "WHOSYOURDADDY":
         player.WHOSYOURDADDY = not player.WHOSYOURDADDY
         return 1
+    elif c_l[0] == "UPGRADENOW":
+        return 2
     elif c_l[0] == 'quit' or c_l[0] == 'q':
         return 1
     else:
