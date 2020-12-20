@@ -15,15 +15,15 @@ class Player(Actor):
     def __init__(self, image, pos, verb=(0, 0), **kwargs):
         super().__init__(image, pos=pos, **kwargs)
         self.verb = verb
-        self.jet_rel = ()
+        self.isjet = False
         self.timer = 0
         self.cd = 3
         self.crusharea = ((10, 0), (32.5, 2.747), (32.5, -2.474))
         # 极坐标下的碰撞监测点
 
-    def update_verb(self, stars, flag_gravity):
-        fx = 10*(self.timer**2)*self.jet_rel[0] if self.jet_rel else 0
-        fy = 10*(self.timer**2)*self.jet_rel[1] if self.jet_rel else 0
+    def update_verb(self, stars, flag_gravity, rel):
+        fx = 10*(self.timer**2)*rel[0] if self.isjet else 0
+        fy = 10*(self.timer**2)*rel[1] if self.isjet else 0
         if flag_gravity:
             for star in stars:
                 dis = [star.pos[0]-self.pos[0], star.pos[1]-self.pos[1]]
@@ -45,9 +45,9 @@ class Player(Actor):
             self.angle = ang if self.verb[1] <= 0 else ang + 180
         # 逐帧计算位置，并重新定位方向
 
-    def jet(self, rel):
+    def jet(self):
         if self.timer == 0:
-            self.jet_rel = rel
+            self.isjet = True
             self.image = 'rocket_withfire'
             self.timer = self.cd
             if self.verb != (0, 0) and self.verb[1] != 0:
@@ -57,8 +57,9 @@ class Player(Actor):
         # 实现喷气
 
     def stop_jet(self):
-        self.jet_rel = ()
-        self.image = 'rocket'
+        self.isjet = False
+        if self.image == 'rocket_withfire':
+            self.image = 'rocket'
         if self.verb != (0, 0) and self.verb[1] != 0:
             ang = math.atan(self.verb[0]/self.verb[1])*(180/math.pi)
             self.angle = ang if self.verb[1] <= 0 else ang + 180
