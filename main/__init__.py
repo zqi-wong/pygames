@@ -147,6 +147,7 @@ def restart():
     stars = []
     timer = 0
     player = Player('rocket', pos=(600, 400))
+    #用于重新开始
 
 
 # def on_key_down(key):
