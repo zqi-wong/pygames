@@ -20,7 +20,7 @@ class Player(Actor):
         self.cd_jet = 3
         self.jet_strength = 1
         self.cd_shoot = 6
-        self.crusharea = ((10, 0), (32.5, 2.747), (32.5, -2.474))
+        self.crusharea = ((9, 0), (28, 2.747), (28, -2.474))
         # 极坐标下的碰撞监测点
         self.WHOSYOURDADDY = False
 
