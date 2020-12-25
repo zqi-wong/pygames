@@ -2,8 +2,11 @@ import pgzrun
 from pgzero.actor import Actor
 from pgzero.clock import clock
 from pgzero.game import exit
+from pgzero.music import _music as music
 import math
 import random
+import os
+import sys
 from config import WIDTH, HEIGHT, G
 
 
@@ -19,7 +22,8 @@ class Player(Actor):
         self.timer = 0
         self.cd_jet = 3
         self.jet_strength = 1
-        self.cd_shoot = 6
+        self.cd_shoot = 5
+        self.score = 0
         self.crusharea = ((9, 0), (28, 2.747), (28, -2.474))
         # 极坐标下的碰撞监测点
         self.WHOSYOURDADDY = False
@@ -81,7 +85,7 @@ class Player(Actor):
             self.angle = ang if self.verb[1] <= 0 else ang + 180
         # 实现停止喷气
 
-    def is_collide(self, star):
+    def check_points(self):
         ang_r = self.angle*(math.pi/180)
         check_points = [(self.pos[0]-math.sin(ang_r+self.crusharea[0][1])*self.crusharea[0][0],
                          self.pos[1]-math.cos(ang_r+self.crusharea[0][1])*self.crusharea[0][0]),
@@ -89,6 +93,10 @@ class Player(Actor):
                          self.pos[1]-math.cos(ang_r+self.crusharea[1][1])*self.crusharea[1][0]),
                         (self.pos[0]-math.sin(ang_r+self.crusharea[2][1])*self.crusharea[2][0],
                          self.pos[1]-math.cos(ang_r+self.crusharea[2][1])*self.crusharea[2][0])]
+        return check_points
+
+    def is_collide(self, star):
+        check_points = self.check_points()
         dis = map(lambda x: (star.pos[0]-x[0], star.pos[1]-x[1]),
                   check_points)
         d = map(lambda x: math.sqrt(x[0]**2+x[1]**2), dis)
@@ -97,7 +105,111 @@ class Player(Actor):
 
     def crush(self):
         self.image = 'crushed_rocket'
+        play('crushed', 1)
         # 变成碰坏的形态
+
+
+class Boss(Actor):
+    '''
+    用于储存boss的类
+    '''
+
+    def __init__(self, image, pos, **kwargs):
+        super().__init__(image, pos=pos, **kwargs)
+        self.li = [5, 5, 5]
+        self.timer = 8
+        self.move = [0,0]
+        self.crusharea = ((-170, -140), (-25, 25), (140, 170))
+
+    def set_image(self):
+        image = 'boss'
+        for i in range(3):
+            if self.li[i]:
+                image += str(i+1)
+        self.image = image
+        # 设置图像
+
+    def update(self):
+        self.timer -= 1/60
+        if self.move[1]>0:
+            self.pos = (self.pos[0]+self.move[0], self.pos[1])
+            self.move[1] -= 1/60
+        elif self.move[1]<0:
+            self.move = [0,0]
+        elif random.randint(0,360)==0:
+            move = random.randint(-400, 400)/10
+            time = random.randint(20,50)/10
+            self.move = (move, time)
+        if self.pos[0] <= 0.2*WIDTH:
+            self.pos = (0.2*WIDTH, self.pos[1])
+        elif self.pos[0] >= 0.8*WIDTH:
+            self.pos = (0.8*WIDTH, self.pos[1])
+        # 随机移动
+
+    def is_co_bu(self, bullet):
+        delta_x = bullet.pos[0]-self.pos[0]
+        delta_y = bullet.pos[1]-self.pos[1]
+        if -175 <= delta_x <= 175 and\
+           -62+abs(delta_x)*0.13 <= delta_y <= 62-abs(delta_x)*0.2:
+            if self.crusharea[0][0] <= delta_x <= self.crusharea[0][1] and\
+               self.li[0]:
+                self.li[0] -= 1
+                return 1
+            elif self.crusharea[1][0] <= delta_x <= self.crusharea[1][1] and\
+                    self.li[1]:
+                self.li[1] -= 1
+                return 1
+            elif self.crusharea[2][0] <= delta_x <= self.crusharea[2][1] and\
+                    self.li[2]:
+                self.li[2] -= 1
+                return 1
+            else:
+                move = -1 if random.randint(0, 1) else 1
+                self.pos = (self.pos[0]+move *
+                            (175+abs(delta_x))*1.1, self.pos[1])
+                self.update()
+                return 0
+        else:
+            return 0
+        # 检测有没有打中：打中返回1 没有返回0
+
+    def is_co_player(self, player):
+        check_points = player.check_points()
+        delta_xs = [x[0]-self.pos[0] for x in check_points]
+        delta_ys = [x[1]-self.pos[1] for x in check_points]
+        if any([-175 <= delta_x <= 175 and -62+abs(delta_x)*0.13 <= delta_y <= 62-abs(delta_x)*0.2
+                for delta_x, delta_y in zip(delta_xs, delta_ys)]):
+            return 1
+        else:
+            return 0
+        # 检测是否碰撞玩家
+
+    def is_co_star(self, star):
+        delta_x = star.pos[0]-self.pos[0]
+        delta_y = star.pos[1]-self.pos[1]
+        if -175 <= delta_x <= 175 and\
+           -62+abs(delta_x)*0.13 <= delta_y <= 62-abs(delta_x)*0.2:
+            return 1
+        else:
+            return 0
+        # 检测是否碰到star
+
+    def attack(self, player, stars):
+        ran = random.randint(0, 100)
+        if abs(self.timer) <= (ran/100) or self.timer <= -1:
+            move = -1 if random.randint(0, 1) else 1
+            self.pos = (player.pos[0]+move*ran, self.pos[1])
+            for i in li:
+                if i:
+                    for j in range(5):
+                        pos = (self.pos[0]+sum(self.crusharea[i])/2,
+                               self.pos+70+20*j)
+                        dis = (player.pos[0]-pos[0], player.pos[1]-pos[1])
+                        d = math.sqrt(dis[0]**2+dis[1]**2)
+                        rel = (dis[0]/d, dis[1]/d)
+                        verb = (rel[0]*250, rel[1]*250)
+                        addStar(pos, verb, 10, stars)
+        # 攻击方式
 
 
 class Star():
@@ -221,3 +333,16 @@ def reset_position(player, stars):
             star.pos = (star.pos[0], star.pos[1]-feed_back)
         player.pos = (player.pos[0], player.pos[1]-feed_back)
     # 用于使火箭处于大约中间
+
+
+def play(file, loop):
+    if os.path.realpath('')[-4:] == 'main':
+        full_path = os.path.realpath('sounds\\'+file+'.mp3')
+    else:
+        full_path = os.path.realpath('main\sounds\\'+file+'.mp3')
+    music.load(full_path)
+    music.play(loop, 0.0)
+
+
+def is_playing():
+    return music.get_busy()

@@ -2,7 +2,7 @@ import pgzrun
 import random
 import math
 import time
-from game_objects import Player, Star, addStar, reset_position, ran_addStar
+from game_objects import Player, Star, addStar, reset_position, ran_addStar, play
 from config import WIDTH, HEIGHT, G
 '''
 此文档用于写调试代码
@@ -33,6 +33,9 @@ def check_commands(command, stars, mouse_position, player):
         return 1
     elif c_l[0] == "UPGRADENOW":
         return 2
+    elif c_l[0] == "DOASTHEROMANSDO":
+        play('doastheromansdo', 1)
+        return 1
     elif c_l[0] == 'quit' or c_l[0] == 'q':
         return 1
     else:

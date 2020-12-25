@@ -2,20 +2,22 @@ import pgzrun
 import random
 import math
 import time
-from game_objects import Player, Star, addStar, reset_position, ran_addStar
+from game_objects import Player, Star, addStar, reset_position, ran_addStar, Boss, play, is_playing
 from commands import check_commands
-from config import WIDTH, HEIGHT, G
+from config import WIDTH, HEIGHT, G, upgrade_bin, boss_score
 
 
 def restart():
-    global game_stop, flag_gravity, debug_mode, upgrading_timer, stars, mouse_position, player, timer
+    global game_stop, flag_gravity, debug_mode, upgrading_timer, stars, mouse_position, player, timer, boss_mode
     game_stop = 0
     flag_gravity = False
     debug_mode = False
+    boss_mode = False
     stars = []
     timer = 0
-    upgrading_timer = 20
+    upgrading_timer = upgrade_bin
     player = Player('rocket', pos=(600, 400))
+    play('deepspacetravels', -1)
     # 用于重新开始
 
 
@@ -27,10 +29,12 @@ def draw():
     screen.clear()
     screen.fill((30, 30, 30))
     screen.draw.text('next jet:{:.2f}\nscore:{:.1f}'.format(
-        player.timer, timer), (800, 100))
+        player.timer, player.score), (800, 100))
     for star in stars:
         screen.draw.filled_circle(star.pos, star.radium, star.color)
     player.draw()
+    if boss_mode:
+        boss.draw()
     # 画行星和火箭
 
     if mouse_position:
@@ -49,7 +53,7 @@ def draw():
         msg = "Here  comes  the  GRAVITY!"
         screen.draw.text(msg, (500, 300))
     elif game_stop == 3:
-        msg = "GAME  OVER\nyour score is {:.1f}\n".format(timer)
+        msg = "GAME  OVER\nyour score is {:.1f}\n".format(player.score)
         msg += "press 'c' to exit\npress 'r' to restart"
         screen.draw.text(msg, (500, 300))
     elif game_stop == 4:
@@ -61,7 +65,14 @@ def draw():
 
 
 def update():
-    global timer, flag_gravity, game_stop, debug_mode, upgrading_timer
+    global timer, flag_gravity, game_stop, debug_mode, upgrading_timer, boss_mode, boss
+    if not is_playing():
+        if game_stop == 3:
+            play('game_over', -1)
+        else:
+            play('deepspacetravels', -1)
+    # 音乐相关
+
     if keyboard.BACKQUOTE:
         debug_mode = 1
         while True:
@@ -84,17 +95,17 @@ def update():
 
     if keyboard.X and game_stop == 4:
         player.cd_shoot = player.cd_shoot * \
-            0.6 if player.cd_shoot >= 2 else 0.5*(player.cd_shoot+0.5)
+            0.6 if player.cd_shoot >= 1.5 else 0.5*(player.cd_shoot+0.5)
         player.timer = 0.1
         game_stop = 0
     elif keyboard.SPACE and game_stop == 4:
-        player.cd_jet = player.cd_jet-0.1 if player.cd_jet >= 2.2 else player.cd_jet
+        player.cd_jet = player.cd_jet-0.2 if player.cd_jet >= 2.1 else player.cd_jet
         player.jet_strength += 0.6
         player.timer = 0.1
         game_stop = 0
-    if timer >= upgrading_timer:
+    if player.score >= upgrading_timer:
         game_stop = 4
-        upgrading_timer += 20
+        upgrading_timer += upgrade_bin
     # 实现升级
 
     if game_stop or debug_mode:
@@ -104,6 +115,11 @@ def update():
     timer += 1/60
     reset_position(player, stars)
     # 调节大致处于屏幕中央
+
+    if player.score >= boss_score and not boss_mode:
+        boss = Boss('boss123', (600, 150))
+        boss_mode = True
+    # 生成boss
 
     if random.randint(0, 240-int(math.atan(timer)*(360/math.pi))) == 0:
         ran_addStar(stars)
@@ -117,6 +133,8 @@ def update():
     rel = count_rel(player, mouse_position)
     player.update_verb(stars, flag_gravity, rel)
     player.update_pos()
+    if boss_mode:  # boss相关
+        boss.update()
     # 计算位置和速度
 
     for bullet in [x for x in stars if x.bullet]:
@@ -129,7 +147,11 @@ def update():
             if d <= star.radium+bullet.radium:
                 stars.remove(bullet)
                 stars.remove(star)
-    # 实现子弹功能
+                player.score += 5-star.radium/10
+        if boss_mode:  # boss相关
+            if boss.is_co_bu(bullet):
+                stars.remove(bullet)
+    # 实现子弹功能 和 子弹攻击boss功能
 
     for i in range(len(stars)):
         for j in range(len(stars)):
@@ -141,7 +163,14 @@ def update():
             if d <= stars[i].radium+stars[j].radium:
                 stars[i].collide(stars[j])
     for star in stars:
+        if boss_mode:  # boss相关
+            if boss.is_co_star(star):
+                stars.remove(star)
         if player.is_collide(star) and (not player.WHOSYOURDADDY):
+            player.crush()
+            game_stop = 3
+    if boss_mode:  # boss相关
+        if boss.is_co_player(player) and (not player.WHOSYOURDADDY):
             player.crush()
             game_stop = 3
     # 检测碰撞
