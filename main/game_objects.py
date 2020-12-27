@@ -25,7 +25,7 @@ class Player(Actor):
         self.jet_strength = 1
         self.cd_shoot = 4.5
         self.score = 0
-        self.crusharea = ((9.5, 0), (29, 2.747), (29, -2.474))
+        self.crusharea = ((11, 0), (29, 2.747), (29, -2.474))
         # 极坐标下的碰撞监测点
         self.WHOSYOURDADDY = False
 
@@ -48,8 +48,8 @@ class Player(Actor):
         # 逐帧计算速度
 
     def update_pos(self):
-        self.pos = (self.pos[0] + self.verb[0]/60,
-                    self.pos[1] + self.verb[1]/60)
+        # self.pos = (self.pos[0] + self.verb[0]/60,
+        #             self.pos[1] + self.verb[1]/60)
         if self.verb != (0, 0) and self.verb[1] != 0:
             ang = math.atan(self.verb[0]/self.verb[1])*(180/math.pi)
             self.angle = ang if self.verb[1] <= 0 else ang + 180
@@ -274,9 +274,9 @@ class Star():
                      other.pos[1]+deep*(dis[1]/d)*self.mass/(2*(self.mass+other.mass)))
         # 实现行星之间重置位置
 
-    def update(self):
-        self.pos = (self.pos[0] + self.verb[0]/60,
-                    self.pos[1] + self.verb[1]/60)
+    def update(self,player):
+        self.pos = (self.pos[0] + self.verb[0]/60-player.verb[0]/60,
+                    self.pos[1] + self.verb[1]/60-player.verb[1]/60)
         # 逐帧计算行星位置
         for row in self.co_just_now:
             if row[1] <= 0:
@@ -320,26 +320,26 @@ def ran_addStar(stars):
     # 随机生成行星
 
 
-def reset_position(player, stars):
-    #feed_back = (abs(player.verb[0])+abs(player.verb[1]))/60
-    feed_back = (abs(player.verb[0])/60, abs(player.verb[1])/60)
-    if player.pos[0] < 0.4*WIDTH:
-        for star in stars:
-            star.pos = (star.pos[0]+feed_back[0], star.pos[1])
-        player.pos = (player.pos[0]+feed_back[0], player.pos[1])
-    if player.pos[0] > 0.6*WIDTH:
-        for star in stars:
-            star.pos = (star.pos[0]-feed_back[0], star.pos[1])
-        player.pos = (player.pos[0]-feed_back[0], player.pos[1])
-    if player.pos[1] < 0.4*HEIGHT:
-        for star in stars:
-            star.pos = (star.pos[0], star.pos[1]+feed_back[1])
-        player.pos = (player.pos[0], player.pos[1]+feed_back[1])
-    if player.pos[1] > 0.6*HEIGHT:
-        for star in stars:
-            star.pos = (star.pos[0], star.pos[1]-feed_back[1])
-        player.pos = (player.pos[0], player.pos[1]-feed_back[1])
-    # 用于使火箭处于大约中间
+# def reset_position(player, stars):
+#     #feed_back = (abs(player.verb[0])+abs(player.verb[1]))/60
+#     feed_back = (abs(player.verb[0])/60, abs(player.verb[1])/60)
+#     if player.pos[0] < 0.4*WIDTH:
+#         for star in stars:
+#             star.pos = (star.pos[0]+feed_back[0], star.pos[1])
+#         player.pos = (player.pos[0]+feed_back[0], player.pos[1])
+#     if player.pos[0] > 0.6*WIDTH:
+#         for star in stars:
+#             star.pos = (star.pos[0]-feed_back[0], star.pos[1])
+#         player.pos = (player.pos[0]-feed_back[0], player.pos[1])
+#     if player.pos[1] < 0.4*HEIGHT:
+#         for star in stars:
+#             star.pos = (star.pos[0], star.pos[1]+feed_back[1])
+#         player.pos = (player.pos[0], player.pos[1]+feed_back[1])
+#     if player.pos[1] > 0.6*HEIGHT:
+#         for star in stars:
+#             star.pos = (star.pos[0], star.pos[1]-feed_back[1])
+#         player.pos = (player.pos[0], player.pos[1]-feed_back[1])
+#     # 用于使火箭处于大约中间
 
 
 def play(file, loop):

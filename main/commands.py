@@ -2,7 +2,7 @@ import pgzrun
 import random
 import math
 import time
-from game_objects import Player, Star, addStar, reset_position, ran_addStar, play
+from game_objects import Player, Star, addStar, ran_addStar, play
 from config import WIDTH, HEIGHT, G
 '''
 此文档用于写调试代码

@@ -2,7 +2,7 @@ import pgzrun
 import random
 import math
 import time
-from game_objects import Player, Star, addStar, reset_position, ran_addStar, Boss, play, is_playing
+from game_objects import Player, Star, addStar, ran_addStar, Boss, play, is_playing
 from commands import check_commands
 from config import WIDTH, HEIGHT, G, upgrade_bin, boss_score, gravity_score
 
@@ -153,7 +153,7 @@ def update():
 
     timer += 1/60
     player.score += 1/500
-    reset_position(player, stars)
+    # reset_position(player, stars)
     # 调节大致处于屏幕中央
 
     bg_move()
@@ -169,7 +169,7 @@ def update():
     # 随机生成星体
 
     for star in stars:
-        star.update()
+        star.update(player)
         if any((star.pos[0] <= -3*WIDTH, star.pos[0] >= 4*WIDTH,
                 star.pos[1] <= -3*HEIGHT, star.pos[1] >= 4*HEIGHT)):
             stars.remove(star)
@@ -267,14 +267,17 @@ def count_rel(player, mouse_position):
 
 
 def bg_move():
-    if player.pos[0] < 0.41*WIDTH or player.pos[0] > 0.59*WIDTH or player.pos[1] < 0.41*HEIGHT or player.pos[1] > 0.59*HEIGHT:
-        for i in bgs:
-            i.bgpos[0] -= player.verb[0]/40
-            i.bgpos[1] -= player.verb[1]/40
-    else:
-        for i in bgs:
-            i.bgpos[0] -= player.verb[0]/120
-            i.bgpos[1] -= player.verb[1]/120
+    # if player.pos[0] < 0.41*WIDTH or player.pos[0] > 0.59*WIDTH or player.pos[1] < 0.41*HEIGHT or player.pos[1] > 0.59*HEIGHT:
+    #     for i in bgs:
+    #         i.bgpos[0] -= player.verb[0]/40
+    #         i.bgpos[1] -= player.verb[1]/40
+    # else:
+    #     for i in bgs:
+    #         i.bgpos[0] -= player.verb[0]/120
+    #         i.bgpos[1] -= player.verb[1]/120
+    for i in bgs:
+        i.bgpos[0] -= player.verb[0]/60
+        i.bgpos[1] -= player.verb[1]/60
     if bgs[4].bgpos[0] > WIDTH/2+bgs[4].width:
         for i in bgs:
             i.bgpos[0] -= bgs[4].width
