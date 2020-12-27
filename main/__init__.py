@@ -4,20 +4,46 @@ import math
 import time
 from game_objects import Player, Star, addStar, reset_position, ran_addStar, Boss, play, is_playing
 from commands import check_commands
-from config import WIDTH, HEIGHT, G, upgrade_bin, boss_score
+from config import WIDTH, HEIGHT, G, upgrade_bin, boss_score, gravity_score
+
+
+def bg_restart():
+    bg_center = Actor('background')
+    bg_up = Actor('background')
+    bg_down = Actor('background')
+    bg_left = Actor('background')
+    bg_right = Actor('background')
+    bg_lu = Actor('background')
+    bg_ru = Actor('background')
+    bg_ld = Actor('background')
+    bg_rd = Actor('background')
+    bgs = [bg_lu, bg_up, bg_ru, bg_left,
+           bg_center, bg_right, bg_ld, bg_down, bg_rd]
+    bg_center.bgpos = [WIDTH/2, HEIGHT/2]
+    bg_up.bgpos = [WIDTH/2, HEIGHT/2+bg_center.height]
+    bg_down.bgpos = [WIDTH/2, HEIGHT/2-bg_center.height]
+    bg_left.bgpos = [WIDTH/2-bg_center.width, HEIGHT/2]
+    bg_right.bgpos = [WIDTH/2+bg_center.width, HEIGHT/2]
+    bg_lu.bgpos = [WIDTH/2-bg_center.width, HEIGHT/2+bg_center.height]
+    bg_ld.bgpos = [WIDTH/2-bg_center.width, HEIGHT/2-bg_center.height]
+    bg_ru.bgpos = [WIDTH/2+bg_center.width, HEIGHT/2+bg_center.height]
+    bg_rd.bgpos = [WIDTH/2+bg_center.width, HEIGHT/2-bg_center.height]
+    return bgs
 
 
 def restart():
-    global game_stop, flag_gravity, debug_mode, upgrading_timer, stars, mouse_position, player, timer, boss_mode
+    global game_stop, flag_gravity, debug_mode, upgrading_timer, stars, mouse_position, player, timer, boss_mode, intro, bgs
     game_stop = 0
     flag_gravity = False
     debug_mode = False
     boss_mode = False
+    intro = False
     stars = []
     timer = 0
     upgrading_timer = upgrade_bin
-    player = Player('rocket', pos=(600, 400))
+    player = Player('rocket', pos=(WIDTH/2, HEIGHT/2))
     play('deepspacetravels', -1)
+    bgs = bg_restart()
     # 用于重新开始
 
 
@@ -27,14 +53,17 @@ restart()
 def draw():
     global flag_gravity
     screen.clear()
-    screen.fill((30, 30, 30))
+    for bg in bgs:
+        bg.pos = bg.bgpos[0], bg.bgpos[1]
+        bg.draw()
     screen.draw.text('next jet:{:.2f}\nscore:{:.1f}'.format(
-        player.timer, player.score), (800, 100))
+        player.timer, player.score), (2*WIDTH/3, 100))
     for star in stars:
         screen.draw.filled_circle(star.pos, star.radium, star.color)
     player.draw()
     if boss_mode:
         boss.draw()
+        screen.draw.text(' '.join(list(map(str,boss.li))),boss.pos)
     # 画行星和火箭
 
     if mouse_position:
@@ -45,27 +74,30 @@ def draw():
         msg = "                WAIT!!!!\n" +\
               "        Is  that  too  easy  to  you?\n" +\
               "Now  somethings  challenging  is  coming!"
-        screen.draw.text(msg, (500, 300))
+        screen.draw.text(msg, (WIDTH/2-100, HEIGHT/2-100))
     elif debug_mode:
         msg = "Debuging……"
-        screen.draw.text(msg, (500, 300))
+        screen.draw.text(msg, (WIDTH/2-100, HEIGHT/2-100))
     elif game_stop == 2:
         msg = "Here  comes  the  GRAVITY!"
-        screen.draw.text(msg, (500, 300))
+        screen.draw.text(msg, (WIDTH/2-100, HEIGHT/2-100))
     elif game_stop == 3:
         msg = "GAME  OVER\nyour score is {:.1f}\n".format(player.score)
         msg += "press 'c' to exit\npress 'r' to restart"
-        screen.draw.text(msg, (500, 300))
+        screen.draw.text(msg, (WIDTH/2-100, HEIGHT/2-100))
     elif game_stop == 4:
         msg = "Now you can upgrade one of you skill:\n"
         msg += "press SPACE to stronger your jet\n"
         msg += "press X to shooter the cd of shooting"
-        screen.draw.text(msg, (500, 300))
+        screen.draw.text(msg, (WIDTH/2-100, HEIGHT/2-100))
+    elif game_stop == 5:
+        msg = "Press SPACE to jet\nPress X to shoot"
+        screen.draw.text(msg, (WIDTH/2-100, HEIGHT/2-100))
     # 一些特殊停止记号
 
 
 def update():
-    global timer, flag_gravity, game_stop, debug_mode, upgrading_timer, boss_mode, boss
+    global timer, flag_gravity, game_stop, debug_mode, upgrading_timer, boss_mode, boss, gravity_score, intro
     if not is_playing():
         if game_stop == 3:
             play('game_over', -1)
@@ -108,13 +140,24 @@ def update():
         upgrading_timer += upgrade_bin
     # 实现升级
 
+    if timer >= 1 and not intro:
+        intro = True
+        game_stop = 5
+    if (keyboard.X or keyboard.SPACE) and game_stop == 5:
+        game_stop = 0
+    # 引入介绍
+
     if game_stop or debug_mode:
         return None
     # 特殊停止
 
     timer += 1/60
+    player.score += 1/500
     reset_position(player, stars)
     # 调节大致处于屏幕中央
+
+    bg_move()
+    # 移动背景
 
     if player.score >= boss_score and not boss_mode:
         boss = Boss('boss123', (600, 150))
@@ -135,6 +178,7 @@ def update():
     player.update_pos()
     if boss_mode:  # boss相关
         boss.update()
+        boss.attack(player, stars)
     # 计算位置和速度
 
     for bullet in [x for x in stars if x.bullet]:
@@ -163,13 +207,13 @@ def update():
             if d <= stars[i].radium+stars[j].radium:
                 stars[i].collide(stars[j])
     for star in stars:
-        if boss_mode:  # boss相关
-            if boss.is_co_star(star):
-                stars.remove(star)
         if player.is_collide(star) and (not player.WHOSYOURDADDY):
             player.crush()
             game_stop = 3
-    if boss_mode:  # boss相关
+    if boss_mode: # boss相关
+        for star in [star for star in filter(lambda x: x.bullet==False,stars)]: 
+            if boss.is_co_star(star):
+                stars.remove(star)
         if boss.is_co_player(player) and (not player.WHOSYOURDADDY):
             player.crush()
             game_stop = 3
@@ -186,7 +230,7 @@ def update():
         player.timer = 0
     # 检测喷火
 
-    if flag_gravity == False and timer >= 30:
+    if flag_gravity == False and player.score >= gravity_score:
         flag_gravity = True
         game_stop = 1
         clock.schedule(set_game_stop2, 4.0)
@@ -220,6 +264,30 @@ def count_rel(player, mouse_position):
     rel = (a[0]/le, a[1]/le)  # 以鼠标方向为喷气方向
     return rel
     # 计算鼠标方向
+
+
+def bg_move():
+    if player.pos[0] < 0.41*WIDTH or player.pos[0] > 0.59*WIDTH or player.pos[1] < 0.41*HEIGHT or player.pos[1] > 0.59*HEIGHT:
+        for i in bgs:
+            i.bgpos[0] -= player.verb[0]/40
+            i.bgpos[1] -= player.verb[1]/40
+    else:
+        for i in bgs:
+            i.bgpos[0] -= player.verb[0]/120
+            i.bgpos[1] -= player.verb[1]/120
+    if bgs[4].bgpos[0] > WIDTH/2+bgs[4].width:
+        for i in bgs:
+            i.bgpos[0] -= bgs[4].width
+    if bgs[4].bgpos[0] < WIDTH/2-bgs[4].width:
+        for i in bgs:
+            i.bgpos[0] += bgs[4].width
+    if bgs[4].bgpos[1] > HEIGHT/2+bgs[4].height:
+        for i in bgs:
+            i.bgpos[1] -= bgs[4].height
+    if bgs[4].bgpos[1] < HEIGHT/2-bgs[4].height:
+        for i in bgs:
+            i.bgpos[1] += bgs[4].height
+
 
 # def on_key_down(key):
 #     print(key)

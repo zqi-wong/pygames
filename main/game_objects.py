@@ -3,6 +3,7 @@ from pgzero.actor import Actor
 from pgzero.clock import clock
 from pgzero.game import exit
 from pgzero.music import _music as music
+from pgzero.animation import animate
 import math
 import random
 import os
@@ -22,9 +23,9 @@ class Player(Actor):
         self.timer = 0
         self.cd_jet = 3
         self.jet_strength = 1
-        self.cd_shoot = 5
+        self.cd_shoot = 4.5
         self.score = 0
-        self.crusharea = ((9, 0), (28, 2.747), (28, -2.474))
+        self.crusharea = ((9.5, 0), (29, 2.747), (29, -2.474))
         # 极坐标下的碰撞监测点
         self.WHOSYOURDADDY = False
 
@@ -117,8 +118,9 @@ class Boss(Actor):
     def __init__(self, image, pos, **kwargs):
         super().__init__(image, pos=pos, **kwargs)
         self.li = [5, 5, 5]
-        self.timer = 8
-        self.move = [0,0]
+        self.attack_time = 8
+        self.timer = self.attack_time
+        self.move = [0, 0]
         self.crusharea = ((-170, -140), (-25, 25), (140, 170))
 
     def set_image(self):
@@ -127,23 +129,26 @@ class Boss(Actor):
             if self.li[i]:
                 image += str(i+1)
         self.image = image
+        if image == 'boss':
+            self.die()
         # 设置图像
 
     def update(self):
         self.timer -= 1/60
-        if self.move[1]>0:
+        if self.move[1] > 0:
             self.pos = (self.pos[0]+self.move[0], self.pos[1])
             self.move[1] -= 1/60
-        elif self.move[1]<0:
-            self.move = [0,0]
-        elif random.randint(0,360)==0:
+        elif self.move[1] < 0:
+            self.move = [0, 0]
+        elif random.randint(0, 360) == 0:
             move = random.randint(-400, 400)/10
-            time = random.randint(20,50)/10
-            self.move = (move, time)
+            time = random.randint(20, 50)/10
+            self.move = [move, time]
         if self.pos[0] <= 0.2*WIDTH:
             self.pos = (0.2*WIDTH, self.pos[1])
         elif self.pos[0] >= 0.8*WIDTH:
             self.pos = (0.8*WIDTH, self.pos[1])
+        self.set_image()
         # 随机移动
 
     def is_co_bu(self, bullet):
@@ -164,9 +169,6 @@ class Boss(Actor):
                 self.li[2] -= 1
                 return 1
             else:
-                move = -1 if random.randint(0, 1) else 1
-                self.pos = (self.pos[0]+move *
-                            (175+abs(delta_x))*1.1, self.pos[1])
                 self.update()
                 return 0
         else:
@@ -187,8 +189,9 @@ class Boss(Actor):
     def is_co_star(self, star):
         delta_x = star.pos[0]-self.pos[0]
         delta_y = star.pos[1]-self.pos[1]
-        if -175 <= delta_x <= 175 and\
-           -62+abs(delta_x)*0.13 <= delta_y <= 62-abs(delta_x)*0.2:
+        r = star.radium
+        if -175-r <= delta_x <= 175+r and\
+           -62+abs(delta_x)*0.13-r <= delta_y <= 62-abs(delta_x)*0.2+r:
             return 1
         else:
             return 0
@@ -197,19 +200,22 @@ class Boss(Actor):
     def attack(self, player, stars):
         ran = random.randint(0, 100)
         if abs(self.timer) <= (ran/100) or self.timer <= -1:
-            move = -1 if random.randint(0, 1) else 1
-            self.pos = (player.pos[0]+move*ran, self.pos[1])
-            for i in li:
-                if i:
-                    for j in range(5):
+            for i in range(len(self.li)):
+                if self.li[i] != 0:
+                    for j in range(1+sum(self.li)//4):
                         pos = (self.pos[0]+sum(self.crusharea[i])/2,
-                               self.pos+70+20*j)
+                               self.pos[1]+70+20*j)
                         dis = (player.pos[0]-pos[0], player.pos[1]-pos[1])
                         d = math.sqrt(dis[0]**2+dis[1]**2)
                         rel = (dis[0]/d, dis[1]/d)
                         verb = (rel[0]*250, rel[1]*250)
                         addStar(pos, verb, 10, stars)
+            self.timer = self.attack_time - \
+                len(list(filter(lambda x: x == 0, self.li[:])))
         # 攻击方式
+
+    def die(self):
+        animate(self, angle=180)
 
 
 class Star():
@@ -315,23 +321,24 @@ def ran_addStar(stars):
 
 
 def reset_position(player, stars):
-    feed_back = (abs(player.verb[0])+abs(player.verb[1]))/60
-    if player.pos[0] < 0.15*WIDTH:
+    #feed_back = (abs(player.verb[0])+abs(player.verb[1]))/60
+    feed_back = (abs(player.verb[0])/60, abs(player.verb[1])/60)
+    if player.pos[0] < 0.4*WIDTH:
         for star in stars:
-            star.pos = (star.pos[0]+feed_back, star.pos[1])
-        player.pos = (player.pos[0]+feed_back, player.pos[1])
-    if player.pos[0] > 0.85*WIDTH:
+            star.pos = (star.pos[0]+feed_back[0], star.pos[1])
+        player.pos = (player.pos[0]+feed_back[0], player.pos[1])
+    if player.pos[0] > 0.6*WIDTH:
         for star in stars:
-            star.pos = (star.pos[0]-feed_back, star.pos[1])
-        player.pos = (player.pos[0]-feed_back, player.pos[1])
-    if player.pos[1] < 0.15*HEIGHT:
+            star.pos = (star.pos[0]-feed_back[0], star.pos[1])
+        player.pos = (player.pos[0]-feed_back[0], player.pos[1])
+    if player.pos[1] < 0.4*HEIGHT:
         for star in stars:
-            star.pos = (star.pos[0], star.pos[1]+feed_back)
-        player.pos = (player.pos[0], player.pos[1]+feed_back)
-    if player.pos[1] > 0.85*HEIGHT:
+            star.pos = (star.pos[0], star.pos[1]+feed_back[1])
+        player.pos = (player.pos[0], player.pos[1]+feed_back[1])
+    if player.pos[1] > 0.6*HEIGHT:
         for star in stars:
-            star.pos = (star.pos[0], star.pos[1]-feed_back)
-        player.pos = (player.pos[0], player.pos[1]-feed_back)
+            star.pos = (star.pos[0], star.pos[1]-feed_back[1])
+        player.pos = (player.pos[0], player.pos[1]-feed_back[1])
     # 用于使火箭处于大约中间
 
 
