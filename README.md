@@ -11,4 +11,4 @@
         2.增加boss（未完成）
         3.改变飞船移动方式
         4.增加说明
-made by zqi-wong
+made by yanke-qu and zqi-wong
