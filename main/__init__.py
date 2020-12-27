@@ -41,7 +41,7 @@ def restart():
     stars = []
     timer = 0
     upgrading_timer = upgrade_bin
-    player = Player('rocket', pos=(WIDTH/2, HEIGHT*0.6))
+    player = Player('rocket', pos=(WIDTH/2, HEIGHT/2))
     play('deepspacetravels', -1)
     bgs = bg_restart()
     # 用于重新开始
@@ -63,7 +63,7 @@ def draw():
     player.draw()
     if boss_mode:
         boss.draw()
-        screen.draw.text(' '.join(list(map(str,boss.li))),boss.pos)
+        screen.draw.text(' '.join(list(map(str, boss.li))), boss.pos)
     # 画行星和火箭
 
     if mouse_position:
@@ -160,12 +160,14 @@ def update():
     # 移动背景
 
     if player.score >= boss_score and not boss_mode:
-        boss = Boss('boss123', (600, 150))
+        boss = Boss('boss123', (WIDTH/2, 100))
         boss_mode = True
+        animate(player,pos=(WIDTH/2, HEIGHT*0.7))
     # 生成boss
 
-    if random.randint(0, 240-int(math.atan(timer)*(360/math.pi))) == 0:
-        ran_addStar(stars)
+    n = (WIDTH+HEIGHT)/2000
+    if random.randint(0, (240-int(math.atan(timer)*(400/math.pi)/n))) == 0:
+        ran_addStar(stars, timer)
     # 随机生成星体
 
     for star in stars:
@@ -210,8 +212,8 @@ def update():
         if player.is_collide(star) and (not player.WHOSYOURDADDY):
             player.crush()
             game_stop = 3
-    if boss_mode: # boss相关
-        for star in [star for star in filter(lambda x: x.bullet==False,stars)]: 
+    if boss_mode:  # boss相关
+        for star in [star for star in filter(lambda x: x.bullet == False, stars)]:
             if boss.is_co_star(star):
                 stars.remove(star)
         if boss.is_co_player(player) and (not player.WHOSYOURDADDY):

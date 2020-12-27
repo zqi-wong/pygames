@@ -30,8 +30,10 @@ class Player(Actor):
         self.WHOSYOURDADDY = False
 
     def update_verb(self, stars, flag_gravity, rel):
-        fx = 15*((self.jet_strength*self.timer)**1.5)*rel[0] if self.isjet else 0
-        fy = 15*((self.jet_strength*self.timer)**1.5)*rel[1] if self.isjet else 0  # 喷汽部分
+        fx = 15*((self.jet_strength*self.timer)**1.5) * \
+            rel[0] if self.isjet else 0
+        fy = 15*((self.jet_strength*self.timer)**1.5) * \
+            rel[1] if self.isjet else 0  # 喷汽部分
         if flag_gravity:
             for star in stars:
                 dis = [star.pos[0]-self.pos[0], star.pos[1]-self.pos[1]]
@@ -119,8 +121,10 @@ class Boss(Actor):
         super().__init__(image, pos=pos, **kwargs)
         self.li = [5, 5, 5]
         self.attack_time = 8
-        self.timer = self.attack_time
+        self.attack_timer = self.attack_time
         self.move = [0, 0]
+        self.move_time = 6
+        self.move_timer = self.move_time
         self.crusharea = ((-170, -140), (-25, 25), (140, 170))
 
     def set_image(self):
@@ -134,7 +138,7 @@ class Boss(Actor):
         # 设置图像
 
     def update(self):
-        self.timer -= 1/60
+        self.move_timer -= 1/60
         if self.move[1] > 0:
             self.pos = (self.pos[0]+self.move[0], self.pos[1])
             self.move[1] -= 1/60
@@ -144,6 +148,7 @@ class Boss(Actor):
             move = random.randint(-400, 400)/10
             time = random.randint(20, 50)/10
             self.move = [move, time]
+            self.move_timer = 6
         if self.pos[0] <= 0.2*WIDTH:
             self.pos = (0.2*WIDTH, self.pos[1])
         elif self.pos[0] >= 0.8*WIDTH:
@@ -199,7 +204,7 @@ class Boss(Actor):
 
     def attack(self, player, stars):
         ran = random.randint(0, 100)
-        if abs(self.timer) <= (ran/100) or self.timer <= -1:
+        if abs(self.attack_timer) <= (ran/100) or self.attack_timer <= -1:
             for i in range(len(self.li)):
                 if self.li[i] != 0:
                     for j in range(1+sum(self.li)//4):
@@ -210,7 +215,7 @@ class Boss(Actor):
                         rel = (dis[0]/d, dis[1]/d)
                         verb = (rel[0]*250, rel[1]*250)
                         addStar(pos, verb, 10, stars)
-            self.timer = self.attack_time - \
+            self.attack_timer = self.attack_time - \
                 len(list(filter(lambda x: x == 0, self.li[:])))
         # 攻击方式
 
@@ -274,7 +279,7 @@ class Star():
                      other.pos[1]+deep*(dis[1]/d)*self.mass/(2*(self.mass+other.mass)))
         # 实现行星之间重置位置
 
-    def update(self,player):
+    def update(self, player):
         self.pos = (self.pos[0] + self.verb[0]/60-player.verb[0]/60,
                     self.pos[1] + self.verb[1]/60-player.verb[1]/60)
         # 逐帧计算行星位置
@@ -295,10 +300,10 @@ def addStar(pos, verb, radium, stars):
     # 增加行星，用于命令行和ran_addStar
 
 
-def ran_addStar(stars):
+def ran_addStar(stars, timer):
     radium = random.randint(20, 40)
     if random.randint(0, 1):
-        verbx = random.randint(30, 200)
+        verbx = random.randint(30, 240-int(math.atan(timer)*(200/math.pi)))
         verby = random.randint(int(verbx/10), 200)
         if random.randint(0, 1):
             pos = (0, random.randint(radium, HEIGHT-radium))
@@ -308,7 +313,8 @@ def ran_addStar(stars):
             verb = (-1*verbx, verby)
     else:
         verby = random.randint(30, 200)
-        verbx = random.randint(int(verby/10), 200)
+        verbx = random.randint(
+            int(verby/10), 240-int(math.atan(timer)*(200/math.pi)))
         if random.randint(0, 1):
             pos = (random.randint(radium, WIDTH-radium), 0)
             verb = (verbx, verby)
