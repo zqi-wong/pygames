@@ -30,8 +30,8 @@ class Player(Actor):
         self.WHOSYOURDADDY = False
 
     def update_verb(self, stars, flag_gravity, rel):
-        fx = 13*((self.jet_strength*self.timer)**2)*rel[0] if self.isjet else 0
-        fy = 13*(self.timer**2)*rel[1] if self.isjet else 0  # 喷汽部分
+        fx = 15*((self.jet_strength*self.timer)**1.5)*rel[0] if self.isjet else 0
+        fy = 15*((self.jet_strength*self.timer)**1.5)*rel[1] if self.isjet else 0  # 喷汽部分
         if flag_gravity:
             for star in stars:
                 dis = [star.pos[0]-self.pos[0], star.pos[1]-self.pos[1]]
@@ -343,10 +343,10 @@ def ran_addStar(stars):
 
 
 def play(file, loop):
-    if os.path.realpath('')[-4:] == 'main':
-        full_path = os.path.realpath('sounds\\'+file+'.mp3')
-    else:
+    if os.path.realpath('')[-4:] == 'game':
         full_path = os.path.realpath('main\sounds\\'+file+'.mp3')
+    else:
+        full_path = os.path.realpath('sounds\\'+file+'.mp3')
     music.load(full_path)
     music.play(loop, 0.0)
 

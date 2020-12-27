@@ -41,7 +41,7 @@ def restart():
     stars = []
     timer = 0
     upgrading_timer = upgrade_bin
-    player = Player('rocket', pos=(WIDTH/2, HEIGHT/2))
+    player = Player('rocket', pos=(WIDTH/2, HEIGHT*0.6))
     play('deepspacetravels', -1)
     bgs = bg_restart()
     # 用于重新开始
