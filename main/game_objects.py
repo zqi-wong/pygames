@@ -8,7 +8,7 @@ import math
 import random
 import os
 import sys
-from config import WIDTH, HEIGHT, G
+from config import WIDTH, HEIGHT, G, boss_bin
 
 
 class Player(Actor):
@@ -28,6 +28,9 @@ class Player(Actor):
         self.crusharea = ((11, 0), (29, 2.747), (29, -2.474))
         # 极坐标下的碰撞监测点
         self.WHOSYOURDADDY = False
+        self.move_time = 1
+        self.move_to = False
+        self.move_back = False
 
     def update_verb(self, stars, flag_gravity, rel):
         fx = 15*((self.jet_strength*self.timer)**1.5) * \
@@ -52,8 +55,21 @@ class Player(Actor):
     def update_pos(self):
         # self.pos = (self.pos[0] + self.verb[0]/60,
         #             self.pos[1] + self.verb[1]/60)
+        if self.move_to:
+            if self.pos[1]<0.7*HEIGHT:
+                self.pos = (self.pos[0],self.pos[1]+(0.2*HEIGHT)/(60*self.move_time))
+            elif self.pos[1] > 0.7*HEIGHT:
+                self.pos = (WIDTH/2, HEIGHT*0.7)
+                self.move_to = False
+        if self.move_back:
+            if self.pos[1]>0.5*HEIGHT:
+                self.pos = (self.pos[0],self.pos[1]-(0.2*HEIGHT)/(60*self.move_time))
+            elif self.pos[1] < 0.5*HEIGHT:
+                self.pos = (WIDTH/2, HEIGHT/2)
+                self.move_back = False
         if self.verb != (0, 0) and self.verb[1] != 0:
-            ang = math.atan(self.verb[0]/self.verb[1])*(180/math.pi)
+            self.verb = (self.verb[0].real,self.verb[1].real)
+            ang = math.atan((self.verb[0]/self.verb[1]).real)*(180/math.pi)
             self.angle = ang if self.verb[1] <= 0 else ang + 180
         # 逐帧计算位置，并重新定位方向
 
@@ -110,6 +126,12 @@ class Player(Actor):
         self.image = 'crushed_rocket'
         play('crushed', 1)
         # 变成碰坏的形态
+        
+    def anim(self,s):
+        if s == 'to':
+            self.move_to = True
+        elif s == 'back':
+            self.move_back = True
 
 
 class Boss(Actor):
@@ -133,12 +155,11 @@ class Boss(Actor):
             if self.li[i]:
                 image += str(i+1)
         self.image = image
-        if image == 'boss':
-            self.die()
         # 设置图像
 
     def update(self):
         self.move_timer -= 1/60
+        self.attack_timer -= 1/60
         if self.move[1] > 0:
             self.pos = (self.pos[0]+self.move[0], self.pos[1])
             self.move[1] -= 1/60
@@ -207,7 +228,7 @@ class Boss(Actor):
         if abs(self.attack_timer) <= (ran/100) or self.attack_timer <= -1:
             for i in range(len(self.li)):
                 if self.li[i] != 0:
-                    for j in range(1+sum(self.li)//4):
+                    for j in range(int(sum(self.li)//4+player.score//boss_bin)):
                         pos = (self.pos[0]+sum(self.crusharea[i])/2,
                                self.pos[1]+70+20*j)
                         dis = (player.pos[0]-pos[0], player.pos[1]-pos[1])
@@ -220,7 +241,7 @@ class Boss(Actor):
         # 攻击方式
 
     def die(self):
-        animate(self, angle=180)
+        animate(self, pos=(self.pos[0], -300), tween='out_elastic')
 
 
 class Star():
@@ -236,6 +257,10 @@ class Star():
         self.color = color
         self.bullet = bullet
         self.co_just_now = []
+        self.move_to = False
+        self.move_back = False
+        self.move_time = 1
+        self.move_timer = 0
 
     def collide(self, other):
         if other not in [x[0] for x in self.co_just_now]:
@@ -289,6 +314,28 @@ class Star():
             else:
                 row = (row[0], row[1]-1/60)
         # 计时刚刚碰撞
+        if self.move_to:
+            if self.move_timer > 0:
+                self.move_timer -= 1/60
+                self.pos = (self.pos[0],self.pos[1]+(0.2*HEIGHT)/(60*self.move_time))
+            else:
+                self.move_timer = 0
+                self.move_to = False
+        if self.move_back:
+            if self.move_timer > 0:
+                self.move_timer -= 1/60
+                self.pos = (self.pos[0],self.pos[1]-(0.2*HEIGHT)/(60*self.move_time))
+            else:
+                self.move_timer = 0
+                self.move_back = False
+        
+    def anim(self,s):
+        if s == 'to':
+            self.move_to = True
+            self.move_timer = self.move_time
+        elif s == 'back':
+            self.move_back = True
+            self.move_timer = self.move_time
 
 
 def addStar(pos, verb, radium, stars):

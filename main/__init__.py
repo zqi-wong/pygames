@@ -4,7 +4,7 @@ import math
 import time
 from game_objects import Player, Star, addStar, ran_addStar, Boss, play, is_playing
 from commands import check_commands
-from config import WIDTH, HEIGHT, G, upgrade_bin, boss_score, gravity_score
+from config import WIDTH, HEIGHT, G, upgrade_bin, boss_bin, gravity_score, n
 
 
 def bg_restart():
@@ -32,7 +32,7 @@ def bg_restart():
 
 
 def restart():
-    global game_stop, flag_gravity, debug_mode, upgrading_timer, stars, mouse_position, player, timer, boss_mode, intro, bgs
+    global game_stop, flag_gravity, debug_mode, upgrading_timer, stars, mouse_position, player, timer, boss_mode, intro, bgs, boss_score
     game_stop = 0
     flag_gravity = False
     debug_mode = False
@@ -41,6 +41,7 @@ def restart():
     stars = []
     timer = 0
     upgrading_timer = upgrade_bin
+    boss_score = boss_bin
     player = Player('rocket', pos=(WIDTH/2, HEIGHT/2))
     play('deepspacetravels', -1)
     bgs = bg_restart()
@@ -56,8 +57,6 @@ def draw():
     for bg in bgs:
         bg.pos = bg.bgpos[0], bg.bgpos[1]
         bg.draw()
-    screen.draw.text('next jet:{:.2f}\nscore:{:.1f}'.format(
-        player.timer, player.score), (2*WIDTH/3, 100))
     for star in stars:
         screen.draw.filled_circle(star.pos, star.radium, star.color)
     player.draw()
@@ -69,6 +68,10 @@ def draw():
     if mouse_position:
         screen.draw.line(player.pos, mouse_position, (204, 204, 204))
     # 画喷气线
+
+    screen.draw.text('next jet:{:.2f}\nscore:{:.1f}'.format(
+        player.timer, player.score), (2*WIDTH/3, 100))
+    # 画分数
 
     if game_stop == 1:
         msg = "                WAIT!!!!\n" +\
@@ -97,7 +100,7 @@ def draw():
 
 
 def update():
-    global timer, flag_gravity, game_stop, debug_mode, upgrading_timer, boss_mode, boss, gravity_score, intro
+    global timer, flag_gravity, game_stop, debug_mode, upgrading_timer, boss_mode, boss, gravity_score, intro, boss_score
     if not is_playing():
         if game_stop == 3:
             play('game_over', -1)
@@ -127,12 +130,12 @@ def update():
 
     if keyboard.X and game_stop == 4:
         player.cd_shoot = player.cd_shoot * \
-            0.6 if player.cd_shoot >= 1.5 else 0.5*(player.cd_shoot+0.5)
+            0.6 if player.cd_shoot >= 1.5 else 0.6*(player.cd_shoot+0.7)
         player.timer = 0.1
         game_stop = 0
     elif keyboard.SPACE and game_stop == 4:
-        player.cd_jet = player.cd_jet-0.2 if player.cd_jet >= 2.1 else player.cd_jet
-        player.jet_strength += 0.6
+        player.cd_jet = player.cd_jet-0.3 if player.cd_jet >= 2.1 else player.cd_jet*0.95
+        player.jet_strength += 0.7
         player.timer = 0.1
         game_stop = 0
     if player.score >= upgrading_timer:
@@ -159,14 +162,24 @@ def update():
     bg_move()
     # 移动背景
 
-    if player.score >= boss_score and not boss_mode:
+    if not boss_mode and player.score >= boss_score:
         boss = Boss('boss123', (WIDTH/2, 100))
         boss_mode = True
-        animate(player,pos=(WIDTH/2, HEIGHT*0.7))
-    # 生成boss
+        player.anim('to')
+        for star in stars:
+            star.anim('to')
+    if boss_mode and boss.image == 'boss':
+        boss.die()
+    if boss_mode and boss.image == 'boss' and boss.pos[1] <= -150:
+        boss = None
+        boss_mode = False
+        player.anim('back')
+        for star in stars:
+            star.anim('back')
+        boss_score = ((player.score//boss_bin)+2)*boss_bin
+    # 生成和消失boss
 
-    n = (WIDTH+HEIGHT)/2000
-    if random.randint(0, (240-int(math.atan(timer)*(400/math.pi)/n))) == 0:
+    if random.randint(0, int(240-(math.atan(timer)*((200+100*n)/math.pi)))) == 0:
         ran_addStar(stars, timer)
     # 随机生成星体
 
